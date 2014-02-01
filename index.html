@@ -1,59 +1,100 @@
-<!DOCTYPE html>
 <html>
-    <head>
-        <meta content="text/html; charset=utf-8" http-equiv="content-type">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, maximum-scale=1" />
-
-        <title>What's your Stemzone I.Q.?</title>
-
-        <link href="css/reset.css" media="screen" rel="stylesheet" type="text/css">
-        <link href="css/slickQuiz.css" media="screen" rel="stylesheet" type="text/css">
-        <link href="css/stemzone.css" media="screen" rel="stylesheet" type="text/css">
-        <!--<link href="css/master.css" media="screen" rel="stylesheet" type="text/css">-->
-    </head>
-
-    <body id="slickQuiz" class="front"><div class="page">
-        <div class="back-top"></div>
-        <div class="back-right"></div>
-        <div class="back-left"></div>
-        <div class="back-bottom"></div>
-        <h1 class="logo">Chevron Stemzone</h1>
-        <h1 class="quizName"><!-- where the quiz name goes --></h1>
-
-        <div class="quizArea">
-            <a class="restart">Restart</a>
-            <div class="quizHeader">
-                <!-- where the quiz main copy goes -->
-
-                <a class="button startQuiz" href="#">Take the quiz</a>
-            </div>
-
-            <div class="quizScore">
-                <div><div class="score-label">Right</div><div class="score-value" id="score-correct"></div></div>
-                <div><div class="score-label">Wrong</div><div class="score-value" id="score-incorrect"></div></div>
-            </div>
-
-            <!-- where the quiz gets built -->
-        </div>
-
-        <div class="quizResults">
-            <h3 class="quizScore">You Scored: <span><!-- where the quiz score goes --></span></h3>
-
-            <h3 class="quizLevel"><strong>Ranking:</strong> <span><!-- where the quiz ranking level goes --></span></h3>
-
-            <div class="quizResultsCopy">
-                <!-- where the quiz result copy goes -->
-            </div>
-        </div>
-
-        <div class="footer"></div>
-        <div class="chevron"></div>
-
-        <script type="text/javascript" src="js/jquery.js"></script>
-        <script type="text/javascript" src="js/slickQuiz-config.js"></script>
-        <script type="text/javascript" src="js/slickQuiz.js"></script>
-        <script type="text/javascript" src="phonegap.js"></script>
-        <script type="text/javascript" src="js/app.js"></script>
-        <script type="text/javascript" src="js/master.js"></script>
-    </div></body>
+    <body>
+        <form onsubmit="return saveText()">
+            <label for="name">Name</label><br>
+            <input id="name" /><br>
+ 
+            <label for="desc">Description</label><br>
+            <input id="desc" /><br>
+ 
+            <input type="submit" value="Save" />
+        </form>
+ 
+ 
+        <dl id="definitions">
+ 
+        </dl>
+    </body>
+    <script src="phonegap.js"></script>
+    <script>
+        var FILENAME = 'database.db',
+            $ = function (id) {
+                return document.getElementById(id);
+            },
+            failCB = function (msg) {
+                return function () {
+                    alert('[FAIL] ' + msg);
+                }
+            },
+            file = {
+                writer: { available: false },
+                reader: { available: false }
+            },
+            dbEntries = [];
+ 
+        document.addEventListener('deviceready', function () {
+            var fail = failCB('requestFileSystem');
+            window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, gotFS, fail);
+        }, false);
+ 
+        function gotFS(fs) {
+            var fail = failCB('getFile');
+            fs.root.getFile(FILENAME, {create: true, exclusive: false},
+                            gotFileEntry, fail);
+        }
+ 
+        function gotFileEntry(fileEntry) {
+            var fail = failCB('createWriter');
+            file.entry = fileEntry;
+ 
+            fileEntry.createWriter(gotFileWriter, fail);
+            readText();
+        }
+ 
+        function gotFileWriter(fileWriter) {
+            file.writer.available = true;
+            file.writer.object = fileWriter;
+        }
+ 
+        function saveText(e) {
+            var name = $('name').value,
+                desc = $('desc').value,
+                fail;
+ 
+            dbEntries.push('<dt>' + name + '</dt><dd>' + desc + '</dd>')
+            $('name').value = '';
+            $('desc').value = '';
+ 
+            $('definitions').innerHTML = dbEntries.join('');
+ 
+            if (file.writer.available) {
+                file.writer.available = false;
+                file.writer.object.onwriteend = function (evt) {
+                    file.writer.available = true;
+                    file.writer.object.seek(0);
+                }
+                file.writer.object.write(dbEntries.join("\n"));
+            }
+ 
+            return false;
+        }
+ 
+        function readText() {
+            if (file.entry) {
+                file.entry.file(function (dbFile) {
+                    var reader = new FileReader();
+                    reader.onloadend = function (evt) {
+                        var textArray = evt.target.result.split("\n");
+ 
+                        dbEntries = textArray.concat(dbEntries);
+ 
+                        $('definitions').innerHTML = dbEntries.join('');
+                    }
+                    reader.readAsText(dbFile);
+                }, failCB("FileReader"));
+            }
+ 
+            return false;
+        }
+    </script>
 </html>
