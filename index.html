@@ -13,36 +13,21 @@
     // device APIs are available
     //
     function onDeviceReady() {
-        window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, gotFS, fail);
+        window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(FS) {
+            FS.root.getFile("empty.txt", {"create":true, "exclusive":false}, 
+                function(fileEntry) {
+                    fileEntry.createWriter(
+                         function(writer) {
+                            alert("Length = " + writer.length);
+                            alert("Position = " + writer.position);
+                            writer.seek(writer.length);
+                            writer.write("1,2,4,5,6,7,8\r\n");
+                            alert("Position = " + writer.position);
+                         }, fail);
+                }, fail);
+        }, fail);
     }
 
-    function gotFS(fileSystem) {
-        fileSystem.root.getFile("readme.txt", {create: true, exclusive: false}, gotFileEntry, fail);
-    }
-
-    function gotFileEntry(fileEntry) {
-        fileEntry.createWriter(gotFileWriter, fail);
-    }
-
-    function gotFileWriter(writer) {
-        writer.onwriteend = function(evt) {
-            alert("contents of file now 'some sample text'");
-            writer.truncate(11);
-            writer.onwriteend = function(evt) {
-                alert("contents of file now 'some sample'");
-                writer.seek(4);
-                writer.write(" different text");
-                writer.onwriteend = function(evt){
-                    alert("contents of file now 'some different text'");
-                }
-            };
-        };
-        writer.write("some sample text");
-    }
-
-    function fail(error) {
-        alert(error.code);
-    }
 
     </script>
   </head>
